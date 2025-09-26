@@ -19,11 +19,25 @@ escanearNmap() {
     echo "[+] Resultados de Nmap guardados en ${OUTPUT}_nmap.txt"
 }
 
+escanearGobuster() {
+    echo "[*] Escaneando Gobuster en $TARGET_DOMAIN..."
+    # Wordlist básica (puedes cambiarla por otra más completa)
+    curl -s https://raw.githubusercontent.com/v0re/dirb/master/wordlists/common.txt > common.txt
+    WORDLIST="common.txt"
+    # Extensiones a probar
+    EXTENSIONS="php,html,txt"
+    # Ejecutar Gobuster
+    gobuster dir -u "http://$TARGET_DOMAIN" -w "$WORDLIST" -x "$EXTENSIONS" -t 50 -o "${OUTPUT}_gobuster.txt"
+    echo "[+] Resultados de Gobuster guardados en ${OUTPUT}_gobuster.txt"
+    grep -E "Status: 200|Status: 301" "${OUTPUT}_gobuster.txt" | awk '{print $1}' > rutas.txt
+}
+
 # Función para escanear con Nikto
 escanearNikto() {
     echo "[*] Escaneando Nikto en $TARGET_DOMAIN..."
-    nikto -h "$TARGET_DOMAIN" -Tuning 1 -output "${OUTPUT}_nikto.txt"
-
+    while read RUTA; do
+    	nikto -h http://$TARGET_DOMAIN$RUTA -Tuning 1 -output "${OUTPUT}_nikto_${RUTA//\//_}.txt"
+    done < rutas.txt
     echo "[+] Resultados de Nikto guardados en ${OUTPUT}_nikto.txt"
 }
 
@@ -42,4 +56,5 @@ fi
 
 # Ejecutar escaneos
 escanearNmap
+escanearGobuster
 escanearNikto
