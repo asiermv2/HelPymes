@@ -1,0 +1,10 @@
+# Dependencias para kali_server.py y chat_kali_api.py
+
+# Servidor API Flask
+flask>=2.3.0
+
+# Cliente HTTP para peticiones
+requests>=2.31.0
+
+# Cliente de Groq para IA
+groq>=0.4.0
