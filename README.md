@@ -30,11 +30,17 @@ Escribe en la terminal
 
     echo $SHELL
 
-Si te devuelve algo como : /usr/bin/zsh
+Si te devuelve algo como: /usr/bin/zsh
 
 Entonces ejecuta esto en la terminal
     
     nano ~/.zshrc
+
+En cambio si te devuelve algo como: /bin/bash
+
+Entonces ejecuta esto en la terminal:
+
+    ~/.bashrc
 
 Una vez dentro del archivo ve al final y escribe
 
