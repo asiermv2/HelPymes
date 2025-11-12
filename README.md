@@ -25,8 +25,28 @@ Si desea que sea mediante Anthropic Claude ejecute:
     ./chat_claude.py
     
 Recuerde que para la correcta ejecucion es necesario que guarde sus API TOKEN como variable de entorno en un lugar seguro.
-En distribuciones debian -> /usr/bin/env
+¿Cómo saber donde guardarlo?
+Escribe en la terminal
 
+    echo $SHELL
+
+Si te devuelve algo como : /usr/bin/zsh
+
+Entonces ejecuta esto en la terminal
+    
+    nano ~/.zshrc
+
+Una vez dentro del archivo ve al final y escribe
+
+    export GROQ_API_KEY="tu_api_key"
+    export ANTHROPIC_API_KEY="tu_api_key"
+    
+Introduciendo el API KEY que obtendras desde la página oficial de cada servicio.
+
+https://console.groq.com/keys
+
+https://console.anthropic.com/settings/keys
+    
 Las sugerencias siempre son bienvenidas, no olvides de aportar tus ideas o consultar tus dudas en la siguiente direccion -> asiermv2@gmail.com . Que lo disfrutes :) !!
 
 No me hago responsable del uso que se haga de la herramienta, esta herramienta está pensada para su ejecucion en entornos controlados , bajo supervisión y permisos otorgados por el/la dueñ@ del sistema atacado.
