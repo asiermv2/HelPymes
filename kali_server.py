@@ -32,6 +32,291 @@ COMMAND_TIMEOUT = 180  # 5 minutes default timeout
 
 app = Flask(__name__)
 
+# ============================================================
+# AGENT PROMPTS DEFINITIONS
+# ============================================================
+AGENT_PROMPTS = {
+    "default": """Eres un asistente de ciberseguridad general con acceso a herramientas de Kali Linux.
+Ayudas con análisis de seguridad, pentesting, y evaluación de vulnerabilidades.""",
+    
+    "blue_team": """Eres un analista de Blue Team especializado en defensa y detección de amenazas.
+
+Tu enfoque es:
+- Análisis defensivo y detección de intrusiones
+- Identificación de IOCs (Indicators of Compromise)
+- Hardening de sistemas y configuraciones seguras
+- Análisis de logs y correlación de eventos
+- Recomendaciones de mitigación y parches
+- Evaluación de controles de seguridad según ISO 27001, NIST, CIS
+
+Cuando analices resultados de escaneos, enfócate en:
+1. Severidad de vulnerabilidades encontradas
+2. Impacto potencial en el negocio
+3. Recomendaciones de remediación priorizadas
+4. Controles compensatorios si no se puede parchear inmediatamente
+
+Contexto: Proporcionas soluciones de ciberseguridad accesibles para PYMEs.
+Siempre considera recursos limitados y presupuestos ajustados.""",
+    
+    "red_team": """Eres un operador de Red Team especializado en simulación de adversarios.
+
+Tu enfoque es:
+- Evasión de controles de seguridad
+- Movimiento lateral y escalada de privilegios
+- Exfiltración de datos
+- Persistencia en sistemas comprometidos
+- TTPs basados en MITRE ATT&CK
+- Operaciones sigilosas y anti-forenses
+
+Cuando realices pentesting:
+1. Enumera exhaustivamente antes de explotar
+2. Documenta cada paso del kill chain
+3. Busca vectores de ataque creativos
+4. Prioriza técnicas que evadan EDR/XDR
+5. Mantén la persistencia cuando sea posible
+
+Contexto: Evalúas la seguridad de PYMEs con recursos limitados.
+Piensa como un atacante real, no como un escáner automatizado.""",
+    
+    "soc_analyst": """Eres un analista de SOC (Security Operations Center) experto en respuesta a incidentes.
+
+Tu enfoque es:
+- Triage y clasificación de alertas
+- Investigación de incidentes de seguridad
+- Hunting de amenazas proactivo
+- Análisis forense digital
+- Elaboración de reportes ejecutivos claros
+- Cumplimiento con procedimientos de ISO 27001
+
+Cuando analices eventos:
+1. Establece la línea temporal del incidente
+2. Identifica el alcance del compromiso
+3. Determina la persistencia del atacante
+4. Recopila evidencia forense
+5. Recomienda acciones de contención y erradicación
+
+Contexto: Trabajas con PYMEs que pueden no tener SOC dedicado.
+Usa la metodología de respuesta a incidentes SANS o NIST.
+Proporciona guías paso a paso comprensibles.""",
+    
+    "vulnerability_analyst": """Eres un analista de vulnerabilidades especializado en evaluaciones de seguridad para PYMEs.
+
+Tu enfoque es:
+- Identificación y clasificación de vulnerabilidades (CVSS)
+- Análisis de riesgo según probabilidad e impacto
+- Priorización basada en recursos limitados
+- Recomendaciones de remediación prácticas
+- Gestión de parches y actualizaciones
+- Reportes ejecutivos y técnicos
+
+Al analizar vulnerabilidades:
+1. Clasifica por severidad (Crítica, Alta, Media, Baja)
+2. Evalúa la facilidad de explotación
+3. Determina el impacto potencial al negocio
+4. Proporciona soluciones temporales si el parche no está disponible
+5. Estima tiempo y recursos necesarios para remediar
+
+Contexto: Las PYMEs tienen presupuestos limitados y personal no especializado.
+Prioriza quick wins y soluciones de bajo coste.""",
+    
+    "pyme_consultant": """Eres un consultor de ciberseguridad especializado en PYMEs sin departamento IT dedicado.
+
+Tu enfoque es:
+- Evaluaciones de seguridad rápidas y efectivas
+- Recomendaciones prácticas de bajo coste
+- Concienciación en seguridad
+- Implementación de controles básicos pero efectivos
+- Cumplimiento normativo (RGPD, LOPD)
+- Soluciones open-source y gratuitas cuando sea posible
+
+Al proporcionar recomendaciones:
+1. Usa lenguaje no técnico cuando sea apropiado
+2. Prioriza medidas con mejor ROI de seguridad
+3. Considera que no hay personal técnico dedicado
+4. Sugiere herramientas gratuitas o económicas
+5. Proporciona guías paso a paso implementables
+
+Contexto: Herramienta de ciberseguridad accesible para PYMEs.
+Objetivo: Mejorar la postura de seguridad sin grandes inversiones.
+Recuerda: La mejor seguridad es la que realmente se implementa.""",
+    
+    "compliance": """Eres un auditor de cumplimiento especializado en normativas aplicables a PYMEs.
+
+Tu enfoque es:
+- Evaluación de controles de seguridad según ISO 27001
+- Cumplimiento RGPD/LOPD para PYMEs
+- Esquema Nacional de Seguridad (ENS) cuando aplique
+- Gap analysis de cumplimiento
+- Documentación de evidencias
+- Recomendaciones de políticas adaptadas a PYMEs
+
+Al evaluar sistemas:
+1. Mapea hallazgos a controles ISO 27001 y normativa aplicable
+2. Evalúa la madurez de los controles
+3. Prioriza según riesgo legal y al negocio
+4. Proporciona plantillas y ejemplos documentales
+5. Considera recursos humanos y económicos limitados
+
+Contexto: PYMEs que necesitan cumplir normativas sin departamento legal/compliance.
+Proporciona soluciones pragmáticas y documentación simple.""",
+    
+    "web_security": """Eres un especialista en seguridad de aplicaciones web enfocado en PYMEs.
+
+Tu enfoque es:
+- Análisis de vulnerabilidades web (OWASP Top 10)
+- Pruebas de inyección SQL, XSS, CSRF
+- Evaluación de configuraciones inseguras
+- Análisis de autenticación y control de acceso
+- Revisión de APIs y servicios web
+- Hardening de servidores web
+
+Al analizar aplicaciones:
+1. Identifica vulnerabilidades críticas explotables remotamente
+2. Proporciona PoC (Proof of Concept) cuando sea relevante
+3. Sugiere remediaciones específicas con código cuando sea posible
+4. Prioriza según exposición a internet
+5. Recomienda herramientas de seguridad gratuitas (WAF, scanners)
+
+Contexto: PYMEs con aplicaciones web desarrolladas por externos o soluciones CMS.
+Muchas veces WordPress, PrestaShop, o aplicaciones legacy.""",
+
+    "sast_analyst": """Eres un analista SAST (Static Application Security Testing) especializado en análisis de código fuente.
+
+Tu enfoque es:
+- Análisis exhaustivo de código fuente sin ejecutarlo
+- Identificación de vulnerabilidades en el código (OWASP Top 10)
+- Detección de patrones inseguros y anti-patrones
+- Análisis de flujo de datos y taint analysis
+- Revisión de configuraciones y secrets management
+- Evaluación de dependencias y librerías vulnerables
+
+Cuando audites código:
+1. **Identifica el stack tecnológico completo**
+   - Lenguajes (JavaScript, Python, Java, PHP, Go, etc.)
+   - Frameworks (React, Django, Spring, Laravel, etc.)
+   - Dependencias y versiones
+
+2. **Clasifica vulnerabilidades según OWASP Top 10**
+   - A01:2021 – Broken Access Control
+   - A02:2021 – Cryptographic Failures
+   - A03:2021 – Injection (SQL, XSS, Command Injection)
+   - A04:2021 – Insecure Design
+   - A05:2021 – Security Misconfiguration
+   - A06:2021 – Vulnerable and Outdated Components
+   - A07:2021 – Identification and Authentication Failures
+   - A08:2021 – Software and Data Integrity Failures
+   - A09:2021 – Security Logging and Monitoring Failures
+   - A10:2021 – Server-Side Request Forgery (SSRF)
+
+3. **Calcula severidad usando CVSS v3.1**
+   - CRITICAL: CVSS 9.0-10.0
+   - HIGH: CVSS 7.0-8.9
+   - MEDIUM: CVSS 4.0-6.9
+   - LOW: CVSS 0.1-3.9
+
+4. **Proporciona remediation específica**
+   - Código vulnerable (antes)
+   - Código seguro (después)
+   - Explicación técnica
+   - Referencias (CWE, OWASP)
+
+5. **Genera reporte estructurado**
+   - Resumen ejecutivo con métricas
+   - Tabla de hallazgos priorizados
+   - Detalles técnicos por vulnerabilidad
+   - Plan de remediación temporal
+
+Contexto: Análisis para PYMEs con recursos limitados.
+Prioriza vulnerabilidades explotables remotamente y que no requieran autenticación.
+Proporciona quick wins y soluciones de bajo esfuerzo primero.""",
+    
+    "network_security": """Eres un especialista en seguridad de redes para infraestructuras de PYMEs.
+
+Tu enfoque es:
+- Análisis de configuración de firewalls y routers
+- Segmentación de red
+- Detección de servicios expuestos innecesariamente
+- Evaluación de configuraciones WiFi
+- VPNs y acceso remoto seguro
+- Monitoreo de tráfico y detección de anomalías
+
+Al evaluar redes:
+1. Identifica servicios críticos expuestos a internet
+2. Evalúa la segmentación (guest WiFi, IoT, corporativo)
+3. Verifica configuraciones de firewall
+4. Detecta credenciales por defecto
+5. Recomienda arquitecturas de red seguras y simples
+
+Contexto: Infraestructuras de red típicas de PYMEs (router comercial, switches básicos).
+Proporciona configuraciones seguras para equipos comunes (MikroTik, Ubiquiti, TP-Link)."""
+}
+
+# Variable global para el agente actual
+current_agent = "default"
+
+# ============================================================
+# AGENT MANAGEMENT ENDPOINTS
+# ============================================================
+
+@app.route("/api/agent/select", methods=["POST"])
+def select_agent():
+    """Cambiar el agente/rol activo."""
+    global current_agent
+    
+    try:
+        params = request.json
+        agent_type = params.get("agent_type", "default")
+        
+        if agent_type not in AGENT_PROMPTS:
+            available_agents = list(AGENT_PROMPTS.keys())
+            return jsonify({
+                "error": f"Agente no válido. Disponibles: {available_agents}"
+            }), 400
+        
+        current_agent = agent_type
+        
+        logger.info(f"Agente cambiado a: {agent_type}")
+        
+        return jsonify({
+            "success": True,
+            "agent": agent_type,
+            "system_prompt": AGENT_PROMPTS[agent_type],
+            "message": f"Agente configurado como: {agent_type}"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al cambiar agente: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route("/api/agent/current", methods=["GET"])
+def get_current_agent():
+    """Obtener el agente actual y su prompt."""
+    return jsonify({
+        "agent": current_agent,
+        "system_prompt": AGENT_PROMPTS[current_agent]
+    })
+
+@app.route("/api/agent/list", methods=["GET"])
+def list_agents():
+    """Listar todos los agentes disponibles."""
+    agents_info = []
+    for agent_name, prompt in AGENT_PROMPTS.items():
+        # Extraer la primera línea del prompt como descripción
+        description = prompt.split('\n')[0]
+        agents_info.append({
+            "name": agent_name,
+            "description": description
+        })
+    
+    return jsonify({
+        "agents": agents_info,
+        "current": current_agent
+    })
+
+# ============================================================
+# COMMAND EXECUTION
+# ============================================================
+
 class CommandExecutor:
     """Class to handle command execution with better timeout management"""
 
@@ -139,6 +424,9 @@ def execute_command(command: str) -> Dict[str, Any]:
     executor = CommandExecutor(command)
     return executor.execute()
 
+# ============================================================
+# TOOL ENDPOINTS
+# ============================================================
 
 @app.route("/api/command", methods=["POST"])
 def generic_command():
@@ -185,7 +473,6 @@ def nmap():
             command += f" -p {ports}"
 
         if additional_args:
-            # Basic validation for additional args - more sophisticated validation would be better
             command += f" {additional_args}"
 
         command += f" {target}"
@@ -339,11 +626,6 @@ def metasploit():
                 "error": "Module parameter is required"
             }), 400
 
-        # Format options for Metasploit
-        options_str = ""
-        for key, value in options.items():
-            options_str += f" {key}={value}"
-
         # Create an MSF resource script
         resource_content = f"use {module}\n"
         for key, value in options.items():
@@ -371,6 +653,88 @@ def metasploit():
         return jsonify({
             "error": f"Server error: {str(e)}"
         }), 500
+@app.route("/api/tools/npm_audit", methods=["POST"])
+def npm_audit():
+    """Análisis de vulnerabilidades en dependencias npm."""
+    try:
+        params = request.json
+        path = params.get("path", "")
+        
+        if not path:
+            return jsonify({"error": "path parameter is required"}), 400
+        
+        # Primero verificar si existe package-lock.json
+        check_cmd = f"test -f {path}/package-lock.json && echo 'exists' || echo 'not_found'"
+        check_result = execute_command(check_cmd)
+        
+        if 'not_found' in check_result.get('stdout', ''):
+            return jsonify({
+                "success": True,
+                "stdout": json.dumps({
+                    "warning": "No package-lock.json found. Cannot run npm audit.",
+                    "suggestion": "Run 'npm install --package-lock-only' first if you want dependency scanning."
+                }),
+                "stderr": "",
+                "return_code": 0
+            })
+        
+        # Si existe, ejecutar npm audit
+        command = f"cd {path} && npm audit --json 2>&1"
+        
+        logger.info(f"Running npm audit: {command}")
+        result = execute_command(command)
+        
+        # npm audit retorna exit code 1 si encuentra vulnerabilidades, pero no es un error
+        if result.get('return_code') in [0, 1]:
+            result['success'] = True
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in npm_audit endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route("/api/tools/pip_audit", methods=["POST"])
+def pip_audit():
+    """Análisis de vulnerabilidades en dependencias Python."""
+    try:
+        params = request.json
+        requirements_file = params.get("requirements_file", "")
+        
+        if not requirements_file:
+            return jsonify({"error": "requirements_file parameter is required"}), 400
+        
+        # Instalar pip-audit si no está
+        command = f"pip-audit --version 2>/dev/null || pip install pip-audit --break-system-packages && pip-audit -r {requirements_file} --format json 2>/dev/null || echo '{{\"error\": \"pip-audit failed\"}}'"
+        
+        logger.info(f"Running pip-audit: {command}")
+        result = execute_command(command)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in pip_audit endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route("/api/tools/dependency_check", methods=["POST"])
+def dependency_check():
+    """Análisis de vulnerabilidades en dependencias (OWASP Dependency-Check)."""
+    try:
+        params = request.json
+        path = params.get("path", "")
+        
+        if not path:
+            return jsonify({"error": "path parameter is required"}), 400
+        
+        # Nota: dependency-check puede tardar mucho
+        command = f"dependency-check --scan {path} --format JSON --out /tmp/dependency-check-report.json 2>&1 && cat /tmp/dependency-check-report.json 2>/dev/null || echo 'Dependency-Check not installed'"
+        
+        logger.info(f"Running dependency-check: {command}")
+        result = execute_command(command)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in dependency_check endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 @app.route("/api/tools/hydra", methods=["POST"])
 def hydra():
@@ -611,14 +975,15 @@ def ssh_bruteforce():
         target = params.get("target", "")
         credentials_file = params.get("credentials_file", "")
         search_name = params.get("search_name", "")
-        port = params.get("port", "")
-
+        port = params.get("port", "22")  # Puerto por defecto: 22
+        
         if not target:
-            logger.warning("SSH bruteforce called without target parameter")
-            return jsonify({
-                "error": "Target parameter is required"
-            }), 400
-
+            return jsonify({"error": "Target parameter is required"}), 400
+        
+        # Verificar que el archivo existe si se especifica
+        if credentials_file and not os.path.isfile(credentials_file):
+            return jsonify({"error": f"Credentials file not found: {credentials_file}"}), 400
+        
         command = f"sshconnect {target}"
         
         if credentials_file:
@@ -626,24 +991,141 @@ def ssh_bruteforce():
         elif search_name:
             command += f" {search_name}"
         else:
-            return jsonify({
-                "error": "Either credentials_file or search_name is required"
-            }), 400
+            return jsonify({"error": "Either credentials_file or search_name is required"}), 400
         
-        if port:
-            command += f" {port}"
-
+        # Siempre agregar el puerto
+        command += f" {port}"
+        
         logger.info(f"Executing SSH bruteforce: {command}")
         result = execute_command(command)
+        
+        # Log detallado del resultado
+        logger.info(f"Command result - Return code: {result.get('return_code')}")
+        logger.info(f"Command result - Stdout length: {len(result.get('stdout', ''))}")
+        logger.info(f"Command result - Stderr length: {len(result.get('stderr', ''))}")
+        
         return jsonify(result)
+        
     except Exception as e:
         logger.error(f"Error in ssh_bruteforce endpoint: {str(e)}")
         logger.error(traceback.format_exc())
-        return jsonify({
-            "error": f"Server error: {str(e)}"
-        }), 500
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
-# Health check endpoint
+@app.route("/api/tools/git_clone", methods=["POST"])
+def git_clone():
+    """Clonar repositorio git."""
+    try:
+        params = request.json
+        repo_url = params.get("repo_url", "")
+        destination = params.get("destination", "/tmp/audit_repo")
+        
+        if not repo_url:
+            return jsonify({"error": "repo_url parameter is required"}), 400
+        
+        # Limpiar directorio si existe
+        command = f"rm -rf {destination} && git clone {repo_url} {destination}"
+        
+        logger.info(f"Cloning repository: {command}")
+        result = execute_command(command)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in git_clone endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route("/api/tools/semgrep", methods=["POST"])
+def semgrep():
+    """Análisis estático de código con Semgrep."""
+    try:
+        params = request.json
+        path = params.get("path", "")
+        config = params.get("config", "auto")  # auto, p/security-audit, p/owasp-top-ten
+        
+        if not path:
+            return jsonify({"error": "path parameter is required"}), 400
+        
+        command = f"semgrep --config={config} {path} --json"
+        
+        logger.info(f"Running Semgrep: {command}")
+        result = execute_command(command)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in semgrep endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route("/api/tools/trufflehog", methods=["POST"])
+def trufflehog():
+    """Buscar secretos y credenciales en código."""
+    try:
+        params = request.json
+        path = params.get("path", "")
+        
+        if not path:
+            return jsonify({"error": "path parameter is required"}), 400
+        
+        command = f"trufflehog filesystem {path} --json"
+        
+        logger.info(f"Running TruffleHog: {command}")
+        result = execute_command(command)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in trufflehog endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route("/api/tools/bandit", methods=["POST"])
+def bandit():
+    """Análisis de seguridad para código Python."""
+    try:
+        params = request.json
+        path = params.get("path", "")
+        
+        if not path:
+            return jsonify({"error": "path parameter is required"}), 400
+        
+        command = f"bandit -r {path} -f json"
+        
+        logger.info(f"Running Bandit: {command}")
+        result = execute_command(command)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in bandit endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route("/api/tools/gitleaks", methods=["POST"])
+def gitleaks():
+    """Detectar secretos en git."""
+    try:
+        params = request.json
+        path = params.get("path", "")
+        
+        if not path:
+            return jsonify({"error": "path parameter is required"}), 400
+        
+        # Gitleaks escribe el output en JSON a un archivo
+        output_file = "/tmp/gitleaks_report.json"
+        command = f"gitleaks detect --source {path} --report-format json --report-path {output_file} --no-color 2>&1; cat {output_file} 2>/dev/null || echo 'No leaks found'"
+        
+        logger.info(f"Running Gitleaks: {command}")
+        result = execute_command(command)
+        
+        # Gitleaks considera "leaks found" como exit code 1, pero no es un error real
+        # Sobrescribir success si hay output válido
+        if result.get("stdout") and ("Finding" in result.get("stdout") or "No leaks found" in result.get("stdout")):
+            result["success"] = True
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in gitleaks endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+# ============================================================
+# HEALTH CHECK & MISC ENDPOINTS
+# ============================================================
+
 @app.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint."""
@@ -664,7 +1146,8 @@ def health_check():
         "status": "healthy",
         "message": "Kali Linux Tools API Server is running",
         "tools_status": tools_status,
-        "all_essential_tools_available": all_essential_tools_available
+        "all_essential_tools_available": all_essential_tools_available,
+        "current_agent": current_agent
     })
 
 @app.route("/mcp/capabilities", methods=["GET"])
@@ -676,6 +1159,10 @@ def get_capabilities():
 def execute_tool(tool_name):
     # Direct tool execution without going through the API server
     pass
+
+# ============================================================
+# MAIN
+# ============================================================
 
 def parse_args():
     """Parse command line arguments."""
@@ -697,4 +1184,5 @@ if __name__ == "__main__":
         API_PORT = args.port
 
     logger.info(f"Starting Kali Linux Tools API Server on port {API_PORT}")
+    logger.info(f"Current agent: {current_agent}")
     app.run(host="0.0.0.0", port=API_PORT, debug=DEBUG_MODE)
