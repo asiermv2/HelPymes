@@ -514,30 +514,6 @@ def enum4linux():
             "error": f"Server error: {str(e)}"
         }), 500
 
-
-# Health check endpoint
-@app.route("/health", methods=["GET"])
-def health_check():
-    """Health check endpoint."""
-    # Check if essential tools are installed
-    essential_tools = ["nmap", "gobuster", "dirb", "nikto"]
-    tools_status = {}
-
-    for tool in essential_tools:
-        try:
-            result = execute_command(f"which {tool}")
-            tools_status[tool] = result["success"]
-        except:
-            tools_status[tool] = False
-
-    all_essential_tools_available = all(tools_status.values())
-
-    return jsonify({
-        "status": "healthy",
-        "message": "Kali Linux Tools API Server is running",
-        "tools_status": tools_status,
-        "all_essential_tools_available": all_essential_tools_available
-    })
 @app.route("/api/tools/nuclei", methods=["POST"])
 def nuclei():
     """Execute Nuclei vulnerability scanner for CVEs."""
@@ -626,6 +602,70 @@ def cve_search():
         return jsonify({
             "error": f"Server error: {str(e)}"
         }), 500
+
+@app.route("/api/tools/ssh_bruteforce", methods=["POST"])
+def ssh_bruteforce():
+    """Execute SSH connection attempts with credentials file."""
+    try:
+        params = request.json
+        target = params.get("target", "")
+        credentials_file = params.get("credentials_file", "")
+        search_name = params.get("search_name", "")
+        port = params.get("port", "")
+
+        if not target:
+            logger.warning("SSH bruteforce called without target parameter")
+            return jsonify({
+                "error": "Target parameter is required"
+            }), 400
+
+        command = f"sshconnect {target}"
+        
+        if credentials_file:
+            command += f" {credentials_file}"
+        elif search_name:
+            command += f" {search_name}"
+        else:
+            return jsonify({
+                "error": "Either credentials_file or search_name is required"
+            }), 400
+        
+        if port:
+            command += f" {port}"
+
+        logger.info(f"Executing SSH bruteforce: {command}")
+        result = execute_command(command)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in ssh_bruteforce endpoint: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            "error": f"Server error: {str(e)}"
+        }), 500
+
+# Health check endpoint
+@app.route("/health", methods=["GET"])
+def health_check():
+    """Health check endpoint."""
+    # Check if essential tools are installed
+    essential_tools = ["nmap", "gobuster", "dirb", "nikto"]
+    tools_status = {}
+
+    for tool in essential_tools:
+        try:
+            result = execute_command(f"which {tool}")
+            tools_status[tool] = result["success"]
+        except:
+            tools_status[tool] = False
+
+    all_essential_tools_available = all(tools_status.values())
+
+    return jsonify({
+        "status": "healthy",
+        "message": "Kali Linux Tools API Server is running",
+        "tools_status": tools_status,
+        "all_essential_tools_available": all_essential_tools_available
+    })
 
 @app.route("/mcp/capabilities", methods=["GET"])
 def get_capabilities():

@@ -384,6 +384,6 @@ class KaliMCPServer:
             )
 
 if __name__ == "__main__":
-    print("🔧 Servidor MCP Kali Tools iniciando...", flush=True)
+    print("🔧 Servidor MCP Kali Tos iniciando...", flush=True)
     server = KaliMCPServer()
     asyncio.run(server.run())

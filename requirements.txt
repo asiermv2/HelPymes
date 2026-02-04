@@ -1,10 +1,17 @@
-# Dependencias para kali_server.py y chat_kali_api.py
+# API clients
+anthropic>=0.39.0
+groq>=0.4.1
 
-# Servidor API Flask
-flask>=2.3.0
+# Web framework
+flask>=3.0.0
 
-# Cliente HTTP para peticiones
+# HTTP requests
 requests>=2.31.0
 
-# Cliente de Groq para IA
-groq>=0.4.0
+# Herramientas de análisis de código
+semgrep>=1.50.0
+bandit>=1.7.5
+gitleaks>=8.18.0
+
+# Optional: análisis de dependencias Python
+pip-audit>=2.6.0
